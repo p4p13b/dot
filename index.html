@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PDF Clusterer: Arquitectura Dual Mutante v11.2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#d3d3e3; 
+  --bg-sidebar:#e3e3f0;
+  --bg-panel:#f4f4fa;
+  --bg-textarea:#ffffff;
+  --border-hard:#3b3b5c;
+  --border-soft:#ababcb;
+  --accent:#3f38af;
+  --accent-hover:#231e6e;
+  --accent-dim:#5c54db;
+  --txt:#05050a;
+  --txt-muted:#404060;
+  --green:#15803d;
+  --amber:#b45309;
+  --red:#b91c1c;
+}
+html,body{height:100%;overflow:hidden;font-family:'Courier New',monospace;background:var(--bg);color:var(--txt)}
+#app{display:flex;height:100vh;gap:0}
+
+/* Panel Izquierdo */
+#left{width:330px;min-width:330px;display:flex;flex-direction:column;border-right:2px solid var(--border-hard);background:var(--bg-sidebar)}
+#ctrl{padding:12px;background:var(--bg-sidebar);border-bottom:2px solid var(--border-hard);flex-shrink:0}
+.ctrl-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+
+.fbtn{padding:5px 12px;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;border:1px solid var(--border-hard);letter-spacing:.5px;text-transform:uppercase}
+.fbtn:hover{background:var(--accent-hover)}
+#pi{display:none}
+
+.btn{padding:4px 8px;background:var(--bg-panel);color:var(--txt);border:1px solid var(--border-hard);border-radius:3px;font-size:10px;font-family:inherit;cursor:pointer;font-weight:bold}
+.btn:hover:not([disabled]){background:#ffffff;border-color:var(--accent-dim)}
+.btn[disabled]{opacity:.3;cursor:default;border-color:var(--border-soft)}
+.btn.hi{background:var(--accent);border-color:var(--border-hard);color:#fff}
+
+#pinfo{font-size:10px;color:var(--txt-muted);min-width:55px;text-align:center;font-weight:bold}
+#fname{font-size:10px;color:var(--accent);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:bold}
+#status{font-size:9px;color:var(--green);margin-left:2px;font-weight:bold}
+
+.range-wrap{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:bold}
+.range-wrap input[type=range]{width:70px;accent-color:var(--accent)}
+.range-val{color:var(--accent);font-weight:700;min-width:20px}
+.num-input{width:42px;background:#fff;border:1px solid var(--border-hard);color:var(--txt);border-radius:3px;font-size:10px;padding:2px 4px;text-align:center;font-weight:bold}
+
+#range-block, #excl-block{background:var(--bg-panel);border:1px solid var(--border-hard);border-radius:4px;padding:8px;margin-top:6px}
+#range-block label, #excl-block label{color:var(--txt);font-weight:700;display:block;margin-bottom:5px;font-size:9px;text-transform:uppercase}
+.range-inputs{display:flex;align-items:center;gap:6px;font-size:10px}
+
+#excl-input{width:100%;background:#fff;border:1px solid var(--border-hard);color:var(--txt);border-radius:3px;font-size:10px;padding:4px 6px}
+#excl-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;min-height:16px}
+.excl-tag{background:#ffe4e6;border:1px solid var(--red);color:var(--red);border-radius:2px;padding:2px 5px;font-size:9px;font-weight:bold;cursor:pointer}
+
+#prog{height:4px;background:#bfb9d6;border-radius:2px;margin-top:8px;border:1px solid var(--border-soft);overflow:hidden}
+#pgbar{height:100%;width:0%;background:var(--accent)}
+
+#body{flex:1;overflow-y:auto;padding:12px;background:var(--bg-textarea);border-top:1px solid var(--border-soft)}
+#ptext{font-family:'Courier New',monospace;font-size:11px;line-height:1.6;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+#hint{color:var(--txt-muted);font-size:11px;text-align:center;padding-top:80px;line-height:2.4;font-weight:bold}
+
+/* Panel Derecho y Tabs */
+#right{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+#tab-nav{display:flex;gap:5px;padding:8px 12px;background:var(--bg-sidebar);border-bottom:2px solid var(--border-hard);align-items:center;flex-shrink:0}
+.tab-btn{padding:5px 10px;background:var(--bg-panel);color:var(--txt-muted);border:1px solid var(--border-hard);border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase}
+.tab-btn.active{background:var(--accent);color:#fff;border-color:var(--border-hard);box-shadow:0 2px 4px rgba(0,0,0,0.15)}
+
+.tab-content{display:none;flex:1;overflow:hidden}
+.tab-content.active{display:flex;flex-direction:column}
+
+#gview{flex:1;position:relative;overflow:hidden;background:var(--bg-panel);padding:6px;display:flex}
+#single-graph-wrap"><svg id="gsvg"></svg></div>
+
+
+#dual-graph-wrap{width:100%;height:100%;display:none;grid-template-columns:1fr 1fr;gap:8px}
+.graph-pane{background:var(--bg-textarea);border:2px solid var(--border-hard);border-radius:4px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.pane-title{padding:6px 10px;font-size:9px;font-weight:bold;text-transform:uppercase;background:var(--bg-sidebar);border-bottom:1px solid var(--border-hard);color:var(--accent)}
+
+.zoom-overlay{position:absolute;bottom:10px;right:10px;display:flex;gap:4px;z-index:10}
+.zoom-btn{width:24px;height:24px;background:var(--bg-panel);border:1px solid var(--border-hard);color:var(--txt);border-radius:3px;cursor:pointer;font-size:14px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+
+#evo-wrap{height:130px;flex-shrink:0;border-top:2px solid var(--border-hard);position:relative;background:var(--bg-sidebar)}
+#evo{height:100%;position:relative}
+.evo-zoom{position:absolute;bottom:6px;right:6px;display:flex;gap:3px;z-index:10}
+
+#stats{display:flex;gap:14px;padding:6px 12px;font-size:10px;color:var(--txt);border-top:2px solid var(--border-hard);flex-shrink:0;background:var(--bg-sidebar);font-weight:bold}
+#stats b{color:var(--accent)}
+
+#tab-metrics, #tab-comp{padding:14px;overflow-y:auto;background:var(--bg-panel)}
+.metrics-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.metric-card{background:var(--bg-textarea);padding:14px;border:2px solid var(--border-hard);border-radius:4px}
+.metric-card-title{font-size:9px;color:var(--txt-muted);text-transform:uppercase;font-weight:bold}
+.metric-card-value{font-size:22px;color:var(--accent);font-weight:700}
+
+.data-table{width:100%;border-collapse:collapse;font-size:11px;background:var(--bg-textarea);border:2px solid var(--border-hard)}
+.data-table th{padding:8px 10px;border-bottom:2px solid var(--border-hard);color:#fff;background:var(--border-hard);text-align:left;font-size:10px;text-transform:uppercase}
+.data-table td{padding:8px 10px;border-bottom:1px solid var(--border-soft);font-weight:bold}
+
+/* Bloque del Anexo Metodológico */
+#tab-anexo{padding:20px;overflow-y:auto;background:var(--bg-panel);display:none}
+#tab-anexo.active{display:block}
+.anexo-container{max-width:900px;margin:0 auto;background:var(--bg-textarea);border:2px solid var(--border-hard);border-radius:4px;padding:25px;box-shadow:3px 3px 0px rgba(0,0,0,0.05)}
+.anexo-header{border-bottom:2px dashed var(--border-hard);padding-bottom:12px;margin-bottom:20px}
+.anexo-header h2{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:var(--accent)}
+.anexo-header p{font-size:10px;color:var(--txt-muted);margin-top:4px}
+.anexo-section{margin-bottom:20px}
+.anexo-section h3{font-size:11px;text-transform:uppercase;color:var(--txt);border-left:3px solid var(--accent);padding-left:8px;margin-bottom:8px}
+.anexo-section p{font-size:11px;line-height:1.6;color:var(--txt-muted);margin-bottom:10px;text-align:justify}
+.anexo-formula{background:var(--bg-panel);border:1px solid var(--border-soft);padding:10px;border-radius:4px;font-family:monospace;font-size:11px;margin:8px 0;color:var(--txt);display:flex;flex-direction:column;gap:4px}
+
+/* Banner de Calibración Activa */
+#calib-banner{background:#eaeaea;border:1px solid var(--border-hard);border-radius:3px;padding:4px 8px;font-size:9px;font-weight:bold;color:var(--accent);display:inline-block;margin-top:4px}
+
+.plbl{position:absolute;top:6px;left:10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-muted);font-weight:700;z-index:1}
+svg{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="left">
+    <div id="ctrl">
+      <div class="ctrl-row">
+        <label class="fbtn" for="pi">▤ PDF</label>
+        <input type="file" id="pi" accept=".pdf">
+        <button class="btn" id="bprev" disabled>◀</button>
+        <span id="pinfo">— / —</span>
+        <button class="btn" id="bnext" disabled>▶</button>
+        <button class="btn hi" id="bproc" disabled>↯ Pág</button>
+        <button class="btn" id="bpall" disabled>⚡ Todo</button>
+      </div>
+      <div class="ctrl-row">
+        <span id="fname"></span>
+        <span id="status"></span>
+      </div>
+      <div class="ctrl-row" style="margin-top:4px;">
+        <button class="btn" id="breset" disabled>⟳</button>
+        <div class="range-wrap">
+          Límite Nodos:
+          <input type="range" id="cLimit" min="10" max="100" value="40">
+          <span class="range-val" id="cLimitVal">40</span>
+        </div>
+        <button class="btn" id="bexport" disabled>💾 JSON</button>
+      </div>
+      <div id="range-block">
+        <label>▸ Rango de páginas</label>
+        <div class="range-inputs">
+          <span>Desde</span>
+          <input type="number" class="num-input" id="rFrom" value="1" min="1">
+          <span>hasta</span>
+          <input type="number" class="num-input" id="rTo" value="999" min="1">
+          <button class="btn hi" id="bProcRange" disabled>↯ Rango</button>
+        </div>
+      </div>
+      <div id="excl-block">
+        <label>▸ Excluir tokens</label>
+        <input type="text" id="excl-input" placeholder="escribir y Enter para excluir…">
+        <div id="excl-tags"></div>
+      </div>
+      <div id="calib-banner">Cargando Reloj de Calibración...</div>
+      <div id="prog"><div id="pgbar"></div></div>
+    </div>
+    <div id="body">
+      <div id="hint">▤ PANEL DE TEXTO EN VIVO<br>Por favor, carga un archivo para iniciar la lectura posicional.</div>
+      <div id="ptext" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('graph','trad',this)">Tradicional</button>
+      <button class="tab-btn" onclick="switchTab('graph','spac',this)">Espacial (Grid)</button>
+      <button class="tab-btn" onclick="switchTab('graph','int',this)">Ritmo (Vectorial)</button>
+      <button class="tab-btn" onclick="switchTab('metrics',null,this)">Métricas</button>
+      <button class="tab-btn" onclick="switchTab('comp',null,this)">Comparativa</button>
+      <button class="tab-btn" onclick="switchTab('anexo',null,this)" style="border-color:var(--accent);color:var(--accent)">Anexo</button>
+    </div>
+
+    <div id="tab-graph" class="tab-content active">
+      <div id="gview">
+        <div class="plbl" id="glbl">Mapa Semántico — Tradicional</div>
+        
+        <div id="single-graph-wrap"><svg id="gsvg"></svg></div>
+        
+        <div id="dual-graph-wrap">
+            <div class="graph-pane">
+                <div class="pane-title">A. Resonancia Interna (Elementos anidados en Clúster Semántico)</div>
+                <svg id="gsvg-int-stable"></svg>
+            </div>
+            <div class="graph-pane">
+                <div class="pane-title">B. Ruptura Estructural (Clústeres por criterio de Intervalo Puro)</div>
+                <svg id="gsvg-int-pure"></svg>
+            </div>
+        </div>
+
+        <div class="zoom-overlay">
+          <button class="zoom-btn" id="gZoomIn">+</button>
+          <button class="zoom-btn" id="gZoomOut">−</button>
+          <button class="zoom-btn" id="gZoomReset">⊡</button>
+        </div>
+      </div>
+      
+      <div id="evo-wrap">
+        <div class="plbl">Evolución Temporal-Posicional de Términos Globales</div>
+        <div id="evo"><svg id="esvg"></svg></div>
+        <div class="evo-zoom">
+          <button class="zoom-btn" id="eZoomIn" style="width:18px;height:18px;font-size:11px">+</button>
+          <button class="zoom-btn" id="eZoomOut" style="width:18px;height:18px;font-size:11px">−</button>
+          <button class="zoom-btn" id="eZoomReset" style="width:18px;height:18px;font-size:9px">⊡</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-metrics" class="tab-content">
+      <div class="metrics-header">
+        <h3>Resumen Axiomático de Métricas</h3>
+        <span id="excl-count" style="font-size:10px;color:var(--red);font-weight:bold"></span>
+        <button class="btn warn" id="bRecompute" style="display:none">↯ Recalcular Pipeline</button>
+      </div>
+      <div id="metrics-summary"></div>
+    </div>
+
+    <div id="tab-comp" class="tab-content">
+      <table class="data-table">
+        <thead>
+          <tr><th>Métrica Estructural</th><th>Tradicional (W)</th><th>Espacial (Grid R)</th><th>Ritmo Vectorial (Δx,Δy)</th></tr>
+        </thead>
+        <tbody id="comp-body"></tbody>
+      </table>
+    </div>
+
+    <div id="tab-anexo" class="tab-content">
+      <div class="anexo-container">
+        <div class="anexo-header">
+          <h2>Anexo Metodológico: Instrumentación Analítica Dual e Isomorfismo Espacial</h2>
+          <p>Documentación técnica sobre el procesamiento matemático de layouts textuales estructurados en formato PDF.</p>
+        </div>
+        
+        <div class="anexo-section">
+          <h3>1. Extracción Correlativa y Tokenización Posicional</h3>
+          <p>El pipeline opera mediante la interceptación de las matrices de transformación afín del documento ($T_m$) provistas por PDF.js. Esto permite mapear cada cadena física a un espacio cartesiano bidimensional absoluto $(x, y)$ medido en puntos tipográficos PostScript. Tras la normalización filológica, los tokens son indexados globalmente bajo una variable de progresión secuencial lineal continua ($t_{seq}$).</p>
+        </div>
+
+        <div class="anexo-section">
+          <h3>2. Proximidad Semántica e Influencia Estocástica Variable</h3>
+          <p>La matriz tradicional se modela mediante co-ocurrencia estricta dentro de un entorno móvil acotado por una ventana sintáctica móvil $W$. Dependiendo del ciclo cronológico estocástico activo (Exogenera en de 17.42 horas), el tamaño de la ventana y el factor de amortiguación de Louvain fluctúan de forma adaptativa para simular diferentes comportamientos de elasticidad de lenguaje.</p>
+        </div>
+
+        <div class="anexo-section">
+          <h3>3. Topología Reticular (Grilla Dinámica de Radio Variable)</h3>
+          <p>Para capturar la sintaxis visual se implementa un particionamiento espacial. El radio de interacción euclidiana ($R$) se autocalibra dinámicamente en función de la densidad local de tokens ($N$) escalado por el multiplicador base de calibración horaria de la sesión, evitando la saturación de los grafos planos.</p>
+        </div>
+
+        <div class="anexo-section">
+          <h3>4. Análisis de Ritmo Vectorial e Invariancia Espacial</h3>
+          <p>El motor registra el historial de vectores coordenados diferenciales $\vec{v} = (\Delta x, \Delta y)$ distribuidos a lo largo del documento. Si la dispersión combinada es inferior al umbral adaptativo determinado por la calibración de fondo, se consolida un enlace de fijeza estructural rígido. El Grafo A proyecta la resonancia semántica ordinaria, mientras que el Grafo B aísla las estructuras de grilla pura prescindiendo del texto.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="stats">
+      <div class="stat-item">Tokens Únicos: <b id="st">0</b></div>
+      <span class="stat-sep">|</span>
+      <div class="stat-item">Págs Leídas: <b id="sp">0</b></div>
+      <span class="stat-sep">|</span>
+      <div class="stat-item">Ocurrencias: <b id="stTotal">0</b></div>
+      <span class="stat-sep">|</span>
+      <div class="stat-item">Dominante: <b id="stTop">—</b></div>
+      <span class="stat-sep">|</span>
+      <div class="stat-item">Excluidos: <b id="stExcl" style="color:var(--red)">0</b></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const pdfjs = window.pdfjsLib;
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* CONFIGURACIÓN MÚLTIPLE: MOTOR DE Exogenera en ESTOCÁSTICA CADA 17.42 HORAS */
+const PERIODO_MS = 17.42 * 60 * 60 * 1000; // 17.42 Horas en Milisegundos
+const CALIBRACIONES = [
+  {
+    nombre: "Alfa (Sintáctica Estricta)",
+    W: 8,              // Ventana semántica cerrada
+    radioMult: 75,     // Grilla compacta
+    umbralRitmo: 6.0,  // Muy estricto con la fijeza geométrica
+    fuerzaCarga: -160  // Repulsión fuerte en el layout
+  },
+  {
+    nombre: "Beta (Sintáctica Expandida)",
+    W: 15,             // Ventana extendida para textos laxos
+    radioMult: 110,    // Grilla amplia
+    umbralRitmo: 10.5, // Tolerante al ruido tipográfico
+    fuerzaCarga: -110  // Gráfica compacta
+  },
+  {
+    nombre: "Gamma (Topológica de Bloque)",
+    W: 11,             // Ventana intermedia estándar
+    radioMult: 90,     // Grilla equilibrada
+    umbralRitmo: 8.0,  // Balance clásico de ritmo
+    fuerzaCarga: -140  // Balance de fuerzas de resorte
+  }
+];
+
+function obtenerCalibracionActiva() {
+  const ahora = Date.now();
+  const bloqueActual = Math.floor(ahora / PERIODO_MS);
+  const indice = bloqueActual % CALIBRACIONES.length;
+  
+  const msRestantes = ((bloqueActual + 1) * PERIODO_MS) - ahora;
+  const horasRestantes = (msRestantes / (1000 * 60 * 60)).toFixed(2);
+  
+  return { config: CALIBRACIONES[indice], sigMut: horasRestantes };
+}
+
+// Inicializar Calibración de Sesión
+let { config: C_ACTIVA, sigMut: MUT_TIME } = obtenerCalibracionActiva();
+document.getElementById('calib-banner').innerHTML = `⚙️ Pipeline: <span style="color:var(--amber)">${C_ACTIVA.nombre}</span> | Exogenera en en: ${MUT_TIME}h`;
+
+const S = {
+  pdf:null, cur:1, total:0, done:new Set(), busy:false, global_token_index:0, 
+  tf:{}, df:{}, evo:[], co_trad:{}, co_spac:{}, co_int:{},
+  clusters_trad:[], clusters_spac:[], clusters_int:[], activeGraph:'trad', excluded:new Set(),
+  radios_calculados: [], dist_synth_hist: {}, activeZooms: []
+};
+
+const COLS=['#3f38af','#16a34a','#d97706','#dc2626','#2563eb','#9333ea','#4b5563','#0891b2'];
+const STOPS=new Set("el la los las un una unos unas de del al a en con por para que se su sus es son esta estan estuvo fue ser y o pero si no mas ya asi tambien este estos ese esa esos esas me te le nos les lo mi tu el ella ellos ellas hay muy bien todo todos toda todas como cuando donde aunque porque sino ante bajo contra desde entre hacia hasta mediante segun sobre tras durante sin cual cuales quien quienes algo alguien cada mismo misma mismos mismas otro otra otros otras tanto tanta tantos tantas tan aqui alli ahi ahora antes despues luego siempre nunca jamas vez ha he hemos habian habia hubiera seria fueron han era eran tiene tienen puede pueden hace hacen va van da dan dice dicen sido hecho dicho visto dado ido tener hacer poder querer saber ir ver dar decir haber estar the a an and or but in on at to for of with is are was were be been being have has had do does did will would could should may might must shall can it this that these those i you he she we they me him her us them my your his our their what which who when where why how all each every both few more most other some such no not only same so than too very just now from up out if about also into after by then as its one first new said".split(/\s+/));
+
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function tokenize(text){return norm(text).replace(/-/g,' ').replace(/[^\p{L}\s]/gu,' ').split(/\s+/).filter(w=>w.length>3&&!STOPS.has(w));}
+
+function addExcluded(token){const t=token.trim().toLowerCase();if(!t)return;S.excluded.add(t);renderExclTags();updateExclUI();}
+function removeExcluded(token){S.excluded.delete(token);renderExclTags();updateExclUI();}
+window.removeExcluded=removeExcluded;
+
+function renderExclTags(){
+  const el=document.getElementById('excl-tags');el.innerHTML='';
+  S.excluded.forEach(t=>{const tag=document.createElement('span');tag.className='excl-tag';tag.innerHTML=`${t} <span onclick="removeExcluded('${t}')">×</span>`;el.appendChild(tag);});
+}
+
+function updateExclUI(){
+  const n=S.excluded.size;
+  document.getElementById('excl-count').textContent=n>0?`${n} excluido(s)`:'';
+  document.getElementById('bRecompute').style.display=(n>0&&S.done.size>0)?'':'none';
+  document.getElementById('stExcl').textContent=n;
+}
+
+document.getElementById('excl-input').addEventListener('keydown',e=>{if(e.key==='Enter'){addExcluded(e.target.value);e.target.value='';}});
+document.getElementById('bRecompute').addEventListener('click',()=>{
+  S.tf={}; S.df={}; S.co_trad={}; S.co_spac={}; S.co_int={}; S.dist_synth_hist={}; S.global_token_index=0; S.evo=[];
+  const oldDone = new Set(S.done); S.done = new Set();
+  document.getElementById('status').textContent='Recalculando...';
+  (async () => {
+    for(let p of oldDone) { const sd = await getPageData(p); processPage(p, sd); }
+    recluster(); updateUI();
+    document.getElementById('status').textContent=`✓ Sincronizado`;
+  })();
+});
+
+async function getPageData(n){
+  const pg=await S.pdf.getPage(n);const tc=await pg.getTextContent();
+  let st=[];
+  tc.items.forEach(item=>{const x=item.transform[4],y=item.transform[5];tokenize(item.str).forEach(w=>st.push({t:w,x,y}));});
+  return st;
+}
+
+async function showPage(n){
+  if(!S.pdf)return;S.cur=n;
+  const sd=await getPageData(n);
+  document.getElementById('ptext').textContent=sd.map(s=>s.t).join(' ')||'[Página sin cadenas de texto estructurado]';
+  document.getElementById('ptext').style.display='block';
+  document.getElementById('hint').style.display='none';
+  document.getElementById('pinfo').textContent=`${S.cur} / ${S.total}`;
+  document.getElementById('bprev').disabled=(S.cur<=1);
+  document.getElementById('bnext').disabled=(S.cur>=S.total);
+  const bp=document.getElementById('bproc');bp.disabled=S.done.has(n);bp.textContent=S.done.has(n)?'✓ OK':'↯ Pág';
+}
+
+function processPage(n,spatialTokens){
+  if(S.done.has(n))return;S.done.add(n);if(!spatialTokens.length)return;
+  
+  // Recalcular dinámicamente si cambió el tramo de 17.42 horas en mitad de la sesión
+  const recargarCalib = obtenerCalibracionActiva();
+  C_ACTIVA = recargarCalib.config;
+  document.getElementById('calib-banner').innerHTML = `⚙️ Pipeline: <span style="color:var(--amber)">${C_ACTIVA.nombre}</span> | Exogenera en en: ${recargarCalib.sigMut}h`;
+
+  const activeTokens=spatialTokens.filter(s=>!S.excluded.has(s.t));
+  const startSeq = S.global_token_index;
+  
+  activeTokens.forEach((s, idx) => { s.seq = startSeq + idx; S.tf[s.t] = (S.tf[s.t]||0)+1; });
+  S.global_token_index += activeTokens.length;
+  new Set(activeTokens.map(s=>s.t)).forEach(t=>{S.df[t]=(S.df[t]||0)+1;});
+  
+  // USA EL COEFICIENTE DE VENTANA DE LA CALIBRACIÓN ACTIVA
+  const W = C_ACTIVA.W;
+  for(let i=0;i<activeTokens.length;i++)for(let j=i+1;j<Math.min(i+W,activeTokens.length);j++){
+    if(activeTokens[i].t===activeTokens[j].t)continue;
+    const k=activeTokens[i].t < activeTokens[j].t ? activeTokens[i].t+'|'+activeTokens[j].t : activeTokens[j].t+'|'+activeTokens[i].t;
+    S.co_trad[k]=(S.co_trad[k]||0)+1;
+  }
+  
+  // USA EL MULTIPLICADOR DE RADIO DE LA CALIBRACIÓN ACTIVA
+  const N_val = activeTokens.length;
+  const R = N_val > 0 ? Math.max(40, Math.min(220, Math.round(C_ACTIVA.radioMult * Math.sqrt(200 / N_val)))) : 90;
+  S.radios_calculados.push(R);
+
+  const grid = {};
+  activeTokens.forEach((token, idx) => {
+    token.idx = idx; 
+    const cx = Math.floor(token.x / R), cy = Math.floor(token.y / R);
+    const cell = `${cx},${cy}`;
+    if (!grid[cell]) grid[cell] = [];
+    grid[cell].push(token);
+  });
+
+  activeTokens.forEach(a => {
+    const cx = Math.floor(a.x / R), cy = Math.floor(a.y / R);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const neighbors = grid[`${cx + dx},${cy + dy}`];
+        if (!neighbors) continue;
+        for (let i = 0; i < neighbors.length; i++) {
+          const b = neighbors[i];
+          if (a.idx >= b.idx || a.t === b.t) continue;
+          if (Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2) <= R) {
+            const k = a.t < b.t ? a.t+'|'+b.t : b.t+'|'+a.t;
+            S.co_spac[k] = (S.co_spac[k] || 0) + 1;
+          }
+        }
+      }
+    }
+  });
+
+  for(let i=0; i<activeTokens.length; i++) {
+    const maxJ = Math.min(i + 65, activeTokens.length);
+    for(let j=i+1; j<maxJ; j++) {
+      const a = activeTokens[i], b = activeTokens[j];
+      if(a.t === b.t) continue;
+      const k = a.t < b.t ? a.t+'|'+b.t : b.t+'|'+a.t;
+      if(!S.dist_synth_hist[k]) S.dist_synth_hist[k] = [];
+      S.dist_synth_hist[k].push({dx: b.x - a.x, dy: b.y - a.y});
+    }
+  }
+
+  S.evo.push({page:n,snap:Object.fromEntries(Object.entries(S.tf).sort((a,b)=>b[1]-a[1]).slice(0,20))});
+  recluster(); updateUI();
+}
+
+function buildClustersLouvain(co, terms) {
+  const edges = {}; const tSet = new Set(terms);
+  Object.entries(co).forEach(([k, w]) => {
+    const [u, v] = k.split('|');
+    if (tSet.has(u) && tSet.has(v) && w > 0) edges[k] = w;
+  });
+  const m = Object.values(edges).reduce((a, b) => a + b, 0);
+  if (m === 0) return terms.map(t => ({ terms: [t], weight: S.tf[t] || 0 }));
+
+  const deg = {}; terms.forEach(t => deg[t] = 0);
+  Object.entries(edges).forEach(([k, w]) => { const [u, v] = k.split('|'); deg[u] += w; deg[v] += w; });
+  let c = {}; terms.forEach(t => c[t] = t);
+  let Tot = { ...deg };
+
+  let improved = true; let iter = 0;
+  while (improved && iter < 10) {
+    improved = false; iter++;
+    for (const i of terms) {
+      const ci = c[i]; const w_iC = {};
+      terms.forEach(j => {
+        if (i === j) return;
+        const e = i < j ? i+'|'+j : j+'|'+i;
+        if (edges[e]) w_iC[c[j]] = (w_iC[c[j]] || 0) + edges[e];
+      });
+      let bestC = ci; let maxDelta = 0;
+      Tot[ci] -= deg[i];
+      for (const [cj, w] of Object.entries(w_iC)) {
+        const delta = w - (Tot[cj] * deg[i]) / (2 * m);
+        if (delta > maxDelta) { maxDelta = delta; bestC = cj; }
+      }
+      c[i] = bestC; Tot[bestC] += deg[i];
+      if (bestC !== ci) improved = true;
+    }
+  }
+  const groups = {};
+  terms.forEach(t => { const r = c[t]; if(!groups[r]) groups[r] = []; groups[r].push(t); });
+  return Object.values(groups).map(ts => ({ terms: ts, weight: ts.reduce((s, t) => s + (S.tf[t]||0), 0) })).sort((a, b) => b.weight - a.weight);
+}
+
+function recluster(){
+  const limit=parseInt(document.getElementById('cLimit').value)||40;
+  document.getElementById('cLimitVal').textContent=limit;
+  const N=S.done.size||1;
+  const terms=Object.keys(S.tf).map(t=>({t,score:S.tf[t]*Math.log(N/(S.df[t]||1))})).sort((a,b)=>b.score-a.score).slice(0,limit).map(x=>x.t);
+  
+  if(!terms.length){S.clusters_trad=[];S.clusters_spac=[];S.clusters_int=[];return;}
+  
+  S.co_int = {};
+  const rhythm_nodes = new Set();
+  
+  Object.entries(S.dist_synth_hist).forEach(([k, vectors]) => {
+    if(vectors.length >= 3) {
+      const mu_dx = vectors.reduce((a,v)=>a+v.dx,0) / vectors.length;
+      const mu_dy = vectors.reduce((a,v)=>a+v.dy,0) / vectors.length;
+      const var_dx = vectors.reduce((a,v)=>a+Math.pow(v.dx-mu_dx,2),0) / vectors.length;
+      const var_dy = vectors.reduce((a,v)=>a+Math.pow(v.dy-mu_dy,2),0) / vectors.length;
+      const sd_total = Math.sqrt(var_dx) + Math.sqrt(var_dy);
+      
+      // USA EL UMBRAL DE RITMO CONFIGURADO POR LA CALIBRACIÓN ACTIVA
+      if (sd_total <= C_ACTIVA.umbralRitmo) { 
+         S.co_int[k] = vectors.length * (10 / Math.max(1, sd_total));
+         const [u, v] = k.split('|');
+         rhythm_nodes.add(u); rhythm_nodes.add(v);
+      }
+    }
+  });
+
+  S.clusters_trad = buildClustersLouvain(S.co_trad, terms);
+  S.clusters_spac = buildClustersLouvain(S.co_spac, terms);
+  
+  const vTerms = terms.filter(t => rhythm_nodes.has(t));
+  S.clusters_int = buildClustersLouvain(S.co_int, vTerms.length ? vTerms : terms);
+}
+
+window.switchTab=function(tabName,graphMode,btn){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  
+  const targetTab = document.getElementById(`tab-${tabName}`);
+  targetTab.classList.add('active');
+  
+  if(tabName==='graph'){
+    if(graphMode)S.activeGraph=graphMode;
+    const titles = { 
+      'trad': `Mapa Semántico — Ventana Tradicional (W=${C_ACTIVA.W})`, 
+      'spac': 'Mapa Semántico — Espacial (Grid Dinámica Computada)', 
+      'int': 'Análisis Dual Rítmico — Estabilización Semántica vs Geometría Pura' 
+    };
+    document.getElementById('glbl').textContent = titles[S.activeGraph];
+    
+    if(S.activeGraph === 'int') {
+        document.getElementById('single-graph-wrap').style.display = 'none';
+        document.getElementById('dual-graph-wrap').style.display = 'grid';
+    } else {
+        document.getElementById('single-graph-wrap').style.display = 'block';
+        document.getElementById('dual-graph-wrap').style.display = 'none';
+    }
+    drawGraph();
+  }
+  else if(tabName==='metrics') renderMetrics();
+  else if(tabName==='comp') renderComparativa();
+};
+
+function executeEngine(svgSelector, nodes, edges, forceMode, clusterColorMapping) {
+    const svg = d3.select(svgSelector);
+    svg.selectAll('*').remove();
+    const W = svg.node().parentElement.clientWidth || 400;
+    const H = svg.node().parentElement.clientHeight || 400;
+    if(!nodes.length) return null;
+
+    const maxFreq = d3.max(nodes, n => S.tf[n.id] || 1) || 1;
+    const rSc = d3.scaleSqrt().domain([0, maxFreq]).range([5, 18]);
+    nodes.forEach(n => { n.r = rSc(S.tf[n.id] || 1); });
+
+    const g = svg.append('g');
+    const zoomBehavior = d3.zoom().scaleExtent([0.1, 8]).on('zoom', e => g.attr('transform', e.transform));
+    svg.call(zoomBehavior);
+
+    let simulation;
+    if (forceMode === 'free-elastic') {
+        // USA LA FUERZA DE REVERBERACIÓN CONFIGURADA POR LA CALIBRACIÓN ACTIVA
+        simulation = d3.forceSimulation(nodes)
+            .force('charge', d3.forceManyBody().strength(C_ACTIVA.fuerzaCarga))
+            .force('center', d3.forceCenter(W / 2, H / 2))
+            .force('collide', d3.forceCollide(n => n.r + 4).strength(0.8))
+            .force('link', d3.forceLink(edges).id(d => d.id).distance(40).strength(d => Math.min(1, d.value * 0.15)));
+    } else {
+        const cids = [...new Set(nodes.map(n => n.cl))];
+        const ang = (2 * Math.PI) / Math.max(1, cids.length);
+        const cpos = Object.fromEntries(cids.map((c, i) => [c, {x: W/2 + Math.cos(i*ang)*(W*.22), y: H/2 + Math.sin(i*ang)*(H*.22)}]));
+        nodes.forEach(n => { if(cpos[n.cl]){ n.x = cpos[n.cl].x; n.y = cpos[n.cl].y; } });
+
+        simulation = d3.forceSimulation(nodes)
+            .force('charge', d3.forceManyBody().strength(-40))
+            .force('collide', d3.forceCollide(n => n.r + 3))
+            .force('x', d3.forceX(n => cpos[n.cl]?.x || W/2).strength(0.18))
+            .force('y', d3.forceY(n => cpos[n.cl]?.y || H/2).strength(0.18))
+            .force('link', d3.forceLink(edges).id(d => d.id).strength(0.04));
+    }
+
+    const link = g.append('g').selectAll('line').data(edges).join('line')
+        .attr('stroke', d => COLS[(clusterColorMapping[d.source.id ?? d.source] ?? 0) % COLS.length])
+        .attr('stroke-width', d => forceMode === 'free-elastic' ? Math.max(1.5, d.value * 0.25) : 1.2)
+        .attr('stroke-opacity', forceMode === 'free-elastic' ? 0.6 : 0.2);
+
+    const node = g.append('g').selectAll('g').data(nodes).join('g')
+        .call(d3.drag()
+            .on("start", (e,d) => { if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on("drag", (e,d) => { d.fx = e.x; d.fy = e.y; })
+            .on("end", (e,d) => { if(!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+    node.append('circle').attr('r', d => d.r).attr('fill', d => COLS[d.cl % COLS.length]).attr('fill-opacity', 0.8).attr('stroke', '#222').attr('stroke-width', 1);
+    node.append('text').text(d => d.id).attr('text-anchor', 'middle').attr('dy', '.35em').attr('font-size', d => Math.max(8, d.r * 0.7)).attr('fill', '#000').style('font-weight', 'bold').style('pointer-events', 'none');
+
+    simulation.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+    return zoomBehavior;
+}
+
+function drawGraph(){
+  const el = document.getElementById('gview'); if(!el || !el.clientWidth) return;
+  S.activeZooms = [];
+
+  if (S.activeGraph !== 'int') {
+      let aC = S.activeGraph === 'trad' ? S.clusters_trad : S.clusters_spac;
+      let aCo = S.activeGraph === 'trad' ? S.co_trad : S.co_spac;
+      let activeTerms = new Set(); aC.forEach(c => c.terms.forEach(t => activeTerms.add(t)));
+      if(!activeTerms.size) return;
+
+      const ci = {}; aC.forEach((c, i) => c.terms.forEach(t => { ci[t] = i; }));
+      const nodes = Array.from(activeTerms).map(t => ({ id: t, cl: ci[t] ?? 0 }));
+      const edges = Object.entries(aCo)
+        .filter(([k,v]) => { const [a,b] = k.split('|'); return v > 0 && activeTerms.has(a) && activeTerms.has(b); })
+        .map(([k,w]) => ({ source: k.split('|')[0], target: k.split('|')[1], value: w }));
+
+      const zb = executeEngine('#gsvg', nodes, edges, 'orbital', ci);
+      if(zb) S.activeZooms.push({ zb, sel: '#gsvg' });
+  } else {
+      let activeTerms = new Set(); S.clusters_int.forEach(c => c.terms.forEach(t => activeTerms.add(t)));
+      if(!activeTerms.size) return;
+
+      const edges_int = Object.entries(S.co_int)
+        .filter(([k,v]) => { const [a,b] = k.split('|'); return v > 0 && activeTerms.has(a) && activeTerms.has(b); })
+        .map(([k,w]) => ({ source: k.split('|')[0], target: k.split('|')[1], value: w }));
+
+      const ci_trad = {}; S.clusters_trad.forEach((c, i) => c.terms.forEach(t => { ci_trad[t] = i; }));
+      const nodes_A = Array.from(activeTerms).map(t => ({ id: t, cl: ci_trad[t] ?? 0 }));
+      const zbA = executeEngine('#gsvg-int-stable', nodes_A, [...edges_int], 'orbital', ci_trad);
+      if(zbA) S.activeZooms.push({ zb: zbA, sel: '#gsvg-int-stable' });
+
+      const ci_int = {}; S.clusters_int.forEach((c, i) => c.terms.forEach(t => { ci_int[t] = i; }));
+      const nodes_B = Array.from(activeTerms).map(t => ({ id: t, cl: ci_int[t] ?? 0 }));
+      const zbB = executeEngine('#gsvg-int-pure', nodes_B, [...edges_int], 'free-elastic', ci_int);
+      if(zbB) S.activeZooms.push({ zb: zbB, sel: '#gsvg-int-pure' });
+  }
+}
+
+document.getElementById('gZoomIn').onclick=()=> S.activeZooms.forEach(z => d3.select(z.sel).transition().duration(180).call(z.zb.scaleBy, 1.4));
+document.getElementById('gZoomOut').onclick=()=> S.activeZooms.forEach(z => d3.select(z.sel).transition().duration(180).call(z.zb.scaleBy, 0.7));
+document.getElementById('gZoomReset').onclick=()=> S.activeZooms.forEach(z => d3.select(z.sel).transition().duration(200).call(z.zb.transform, d3.zoomIdentity));
+
+function updateUI(){
+  const tot=Object.values(S.tf).reduce((a,b)=>a+b,0);
+  const top=Object.entries(S.tf).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('st').textContent=Object.keys(S.tf).length;
+  document.getElementById('sp').textContent=S.done.size;
+  document.getElementById('stTotal').textContent=tot;
+  document.getElementById('stTop').textContent=top?`${top[0]} (${top[1]})`:'—';
+  document.getElementById('pgbar').style.width=S.total?(S.done.size/S.total*100)+'%':'0%';
+  drawGraph(); drawEvo();
+}
+
+function renderMetrics(){
+  const el=document.getElementById('metrics-summary'); if(!el) return;
+  const N=S.done.size||1; const keys=Object.keys(S.tf); const totalTokens=keys.length;
+  if(!totalTokens){ el.innerHTML='<div style="font-size:11px;color:var(--txt-muted);padding:10px 0;">Pipeline sin datos procesados.</div>';return; }
+  let sumTF=0,sumDF=0,sumTFIDF=0;
+  keys.forEach(t=>{const tf=S.tf[t],df=S.df[t]||1;sumTF+=tf;sumDF+=df;sumTFIDF+=tf*Math.log(N/df);});
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:8px;">
+      <div class="metric-card"><div class="metric-card-title">Frecuencia de Términos (TF) Promedio</div><div class="metric-card-value">${(sumTF/totalTokens).toFixed(2)}</div></div>
+      <div class="metric-card"><div class="metric-card-title">Dispersión Documental (DF) Promedio</div><div class="metric-card-value" style="color:var(--green)">${(sumDF/totalTokens).toFixed(2)}</div></div>
+      <div class="metric-card"><div class="metric-card-title">Peso Informativo Promedio Global (TF-IDF)</div><div class="metric-card-value" style="color:var(--amber)">${(sumTFIDF/totalTokens).toFixed(4)}</div></div>
+    </div>`;
+}
+
+function entropy(clusters){
+  const total=clusters.reduce((a,c)=>a+c.terms.length,0)||1;
+  return(-clusters.reduce((acc,c)=>{const p=c.terms.length/total;return acc+(p>0?p*Math.log2(p):0);},0)).toFixed(3);
+}
+function topCluster(clusters){
+  if(!clusters.length)return'—';const c=clusters[0];return`${c.terms.slice(0,2).join(', ')}… (${c.terms.length})`;
+}
+
+function renderComparativa(){
+  const tbody=document.getElementById('comp-body');
+  const cT=S.clusters_trad, cS=S.clusters_spac, cI=S.clusters_int;
+  const avg=(c)=>c.length?(c.reduce((a,b)=>a+b.terms.length,0)/c.length).toFixed(1):0;
+  const avgRadio = S.radios_calculados.length ? Math.round(S.radios_calculados.reduce((a,b)=>a+b,0)/S.radios_calculados.length)+'px' : '90px';
+
+  tbody.innerHTML=`
+    <tr><td>Clústeres Estructurales Detectados</td><td>${cT.length}</td><td>${cS.length}</td><td>${cI.length}</td></tr>
+    <tr><td>Densidad de Agrupamiento (Nodos/Clúster)</td><td>${avg(cT)}</td><td>${avg(cS)}</td><td>${avg(cI)}</td></tr>
+    <tr><td>Entropía de la Distribución Co-Informativa</td><td>${entropy(cT)}</td><td>${entropy(cS)}</td><td>${entropy(cI)}</td></tr>
+    <tr><td>Núcleo de Clúster Dominante</td><td>${topCluster(cT)}</td><td>${topCluster(cS)}</td><td>${topCluster(cI)}</td></tr>
+    <tr><td>Enlaces Totales Validados</td><td>${Object.keys(S.co_trad).length}</td><td>${Object.keys(S.co_spac).length}</td><td>${Object.keys(S.co_int).length}</td></tr>
+    <tr><td>Criterio Físico Operativo del Pipeline</td><td>Ventana Tradicional W=${C_ACTIVA.W}</td><td>Grilla Dinámica Reticular R=${avgRadio}</td><td>Vector Isomórfico Estricto (sd <= ${C_ACTIVA.umbralRitmo})</td></tr>
+  `;
+}
+
+function drawEvo(){
+  const el=document.getElementById('evo');if(!el||!el.clientWidth)return;
+  const W=el.clientWidth,H=el.clientHeight,m={t:16,r:90,b:22,l:35};
+  const svg=d3.select('#esvg').attr('width',W).attr('height',H);svg.selectAll('*').remove();
+  if(S.evo.length<1)return;
+  const sorted=[...S.evo].sort((a,b)=>a.page-b.page);
+  const TOP=Object.entries(sorted[sorted.length-1].snap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([t])=>t);
+  if(!TOP.length)return;
+  const xSc=d3.scaleLinear().domain(sorted.length===1?[sorted[0].page-.5,sorted[0].page+.5]:[sorted[0].page,sorted[sorted.length-1].page]).range([m.l,W-m.r]);
+  const ySc=d3.scaleLinear().domain([0,(d3.max(sorted,e=>d3.max(TOP,t=>e.snap[t]||0))||1)*1.1]).range([H-m.b,m.t]);
+  const g=svg.append('g');
+  
+  TOP.forEach((term,i)=>{
+    const col=COLS[i%COLS.length];
+    const line=d3.line().x(e=>xSc(e.page)).y(e=>ySc(e.snap[term]||0)).curve(d3.curveCatmullRom.alpha(.5));
+    g.append('path').datum(sorted).attr('d',line).attr('fill','none').attr('stroke',col).attr('stroke-width',2);
+  });
+}
+
+document.getElementById('pi').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  document.getElementById('fname').textContent=f.name;
+  S.pdf=await pdfjs.getDocument({data:await f.arrayBuffer()}).promise;
+  S.total=S.pdf.numPages; S.done=new Set(); S.tf={}; S.df={}; S.co_trad={}; S.co_spac={}; S.co_int={}; S.evo=[]; S.dist_synth_hist={}; S.global_token_index=0;
+  document.getElementById('rTo').value=S.total;
+  document.getElementById('bProcRange').disabled=false; document.getElementById('bpall').disabled=false;
+  document.getElementById('breset').disabled=false; document.getElementById('bproc').disabled=false;
+  document.getElementById('bexport').disabled=false;
+  updateUI(); showPage(1);
+});
+
+document.getElementById('bprev').addEventListener('click',()=>{if(S.cur>1)showPage(S.cur-1);});
+document.getElementById('bnext').addEventListener('click',()=>{if(S.cur<S.total)showPage(S.cur+1);});
+document.getElementById('bproc').addEventListener('click',async()=>{processPage(S.cur,await getPageData(S.cur));showPage(S.cur);});
+
+document.getElementById('bpall').addEventListener('click',async()=>{
+  if(S.busy)return; S.busy=true; document.getElementById('bpall').disabled=true;
+  for(let p=1;p<=S.total;p++){
+    if(!S.done.has(p)){ processPage(p,await getPageData(p)); await new Promise(r=>setTimeout(r,4)); }
+  }
+  S.busy=false; document.getElementById('bpall').disabled=false; showPage(S.cur);
+});
+
+document.getElementById('bProcRange').addEventListener('click',async()=>{
+  if(!S.pdf||S.busy)return;
+  const from=parseInt(document.getElementById('rFrom').value)||1;
+  const to=Math.min(parseInt(document.getElementById('rTo').value)||S.total,S.total);
+  S.busy=true;
+  for(let p=from;p<=to;p++){
+    if(!S.done.has(p)){ processPage(p,await getPageData(p)); await new Promise(r=>setTimeout(r,4)); }
+  }
+  S.busy=false; showPage(S.cur);
+});
+
+document.getElementById('breset').addEventListener('click',()=>{
+  S.done=new Set();S.tf={};S.df={};S.co_trad={};S.co_spac={};S.co_int={};S.evo=[];S.dist_synth_hist={};S.global_token_index=0;
+  updateUI();
+});
+
+document.getElementById('cLimit').addEventListener('change', () => { recluster(); updateUI(); });
+new ResizeObserver(()=>{if(S.done.size){drawGraph();drawEvo();}}).observe(document.getElementById('gview'));
+</script>
+</body>
+</html>
