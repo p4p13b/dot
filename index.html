@@ -643,13 +643,61 @@ function drawGraph(){
       const zbA = executeEngine('#gsvg-int-stable', nodes_A, [...edges_int], 'orbital', ci_trad);
       if(zbA) S.activeZooms.push({ zb: zbA, sel: '#gsvg-int-stable' });
 
-      const ci_int = {}; S.clusters_int.forEach((c, i) => c.terms.forEach(t => { ci_int[t] = i; }));
-      const nodes_B = Array.from(activeTerms).map(t => ({ id: t, cl: ci_int[t] ?? 0 }));
-      const zbB = executeEngine('#gsvg-int-pure', nodes_B, [...edges_int], 'free-elastic', ci_int);
-      if(zbB) S.activeZooms.push({ zb: zbB, sel: '#gsvg-int-pure' });
+      /* CUADRANTE B: SUPERPOSICIÓN DE TEXTO ENTERO (MAPA DE CALOR) */
+      const svgB = d3.select('#gsvg-int-pure');
+      svgB.selectAll('*').remove();
+      
+      // Fondo oscuro para generar contraste aditivo térmico
+      svgB.style('background', '#080810');
+      
+      const WB = svgB.node().parentElement.clientWidth || 400;
+      const HB = svgB.node().parentElement.clientHeight || 400;
+      
+      if(S.all_raw_strings && S.all_raw_strings.length) {
+         const xExtent = d3.extent(S.all_raw_strings, d => d.x);
+         const yExtent = d3.extent(S.all_raw_strings, d => d.y);
+         
+         const xScl = d3.scaleLinear().domain(xExtent[0] === xExtent[1] ? [0, 600] : xExtent).range([30, WB - 30]);
+         const yScl = d3.scaleLinear().domain(yExtent[0] === yExtent[1] ? [0, 800] : yExtent).range([HB - 30, 30]);
+         
+         // 1. Computar densidad espacial
+         const cellSize = 15; 
+         const densityGrid = {};
+         S.all_raw_strings.forEach(d => {
+             const cx = Math.floor(d.x / cellSize);
+             const cy = Math.floor(d.y / cellSize);
+             const key = `${cx},${cy}`;
+             densityGrid[key] = (densityGrid[key] || 0) + 1;
+         });
+         
+         // 2. Escala térmica D3 Turbo saturada al 75% para forzar los rojos/blancos
+         const maxDens = Math.max(1, ...Object.values(densityGrid));
+         const heatScale = d3.scaleSequential(d3.interpolateTurbo).domain([1, maxDens * 0.75]);
+         
+         const gB = svgB.append('g');
+         const zbB = d3.zoom().scaleExtent([0.1, 12]).on('zoom', e => gB.attr('transform', e.transform));
+         svgB.call(zbB);
+         S.activeZooms.push({ zb: zbB, sel: '#gsvg-int-pure' });
+         
+         gB.selectAll('text')
+           .data(S.all_raw_strings.slice(0, 4500))
+           .join('text')
+           .attr('x', d => xScl(d.x))
+           .attr('y', d => yScl(d.y))
+           .text(d => d.t)
+           .attr('font-family', "'Courier New', monospace")
+           .attr('font-size', '11px')
+           .attr('font-weight', '900') // Peso extra para mayor área de color
+           .attr('fill', d => {
+               const cx = Math.floor(d.x / cellSize);
+               const cy = Math.floor(d.y / cellSize);
+               return heatScale(densityGrid[`${cx},${cy}`]);
+           })
+           .attr('fill-opacity', 0.5)
+           .style('mix-blend-mode', 'screen') // Magia de fusión de luz aditiva
+           .attr('text-anchor', 'middle');
+      }
   }
-}
-
 document.getElementById('gZoomIn').onclick=()=> S.activeZooms.forEach(z => d3.select(z.sel).transition().duration(180).call(z.zb.scaleBy, 1.4));
 document.getElementById('gZoomOut').onclick=()=> S.activeZooms.forEach(z => d3.select(z.sel).transition().duration(180).call(z.zb.scaleBy, 0.7));
 document.getElementById('gZoomReset').onclick=()=> S.activeZooms.forEach(z => d3.select(z.sel).transition().duration(200).call(z.zb.transform, d3.zoomIdentity));
