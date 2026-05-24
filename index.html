@@ -31,7 +31,7 @@ html,body{height:100%;overflow:hidden;font-family:'Courier New',monospace;backgr
 #ctrl{padding:12px;background:var(--bg-sidebar);border-bottom:2px solid var(--border-hard);flex-shrink:0}
 .ctrl-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
 
-.fbtn{padding:5px 12px;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;border:1px solid var(--border-hard);letter-spacing:.5px;text-transform:up[...]
+.fbtn{padding:5px 12px;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;border:1px solid var(--border-hard);letter-spacing:.5px;text-transform:uppercase}
 .fbtn:hover{background:var(--accent-hover)}
 #pi{display:none}
 
@@ -67,22 +67,21 @@ html,body{height:100%;overflow:hidden;font-family:'Courier New',monospace;backgr
 /* Panel Derecho y Tabs */
 #right{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
 #tab-nav{display:flex;gap:5px;padding:8px 12px;background:var(--bg-sidebar);border-bottom:2px solid var(--border-hard);align-items:center;flex-shrink:0}
-.tab-btn{padding:5px 10px;background:var(--bg-panel);color:var(--txt-muted);border:1px solid var(--border-hard);border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;text-transform:up[...]
+.tab-btn{padding:5px 10px;background:var(--bg-panel);color:var(--txt-muted);border:1px solid var(--border-hard);border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase}
 .tab-btn.active{background:var(--accent);color:#fff;border-color:var(--border-hard);box-shadow:0 2px 4px rgba(0,0,0,0.15)}
 
 .tab-content{display:none;flex:1;overflow:hidden}
 .tab-content.active{display:flex;flex-direction:column}
 
 #gview{flex:1;position:relative;overflow:hidden;background:var(--bg-panel);padding:6px;display:flex}
-#single-graph-wrap"><svg id="gsvg"></svg></div>
-
+#single-graph-wrap{width:100%;height:100%;display:flex}<svg id="gsvg"></svg></div>
 
 #dual-graph-wrap{width:100%;height:100%;display:none;grid-template-columns:1fr 1fr;gap:8px}
 .graph-pane{background:var(--bg-textarea);border:2px solid var(--border-hard);border-radius:4px;display:flex;flex-direction:column;position:relative;overflow:hidden}
 .pane-title{padding:6px 10px;font-size:9px;font-weight:bold;text-transform:uppercase;background:var(--bg-sidebar);border-bottom:1px solid var(--border-hard);color:var(--accent)}
 
 .zoom-overlay{position:absolute;bottom:10px;right:10px;display:flex;gap:4px;z-index:10}
-.zoom-btn{width:24px;height:24px;background:var(--bg-panel);border:1px solid var(--border-hard);color:var(--txt);border-radius:3px;cursor:pointer;font-size:14px;font-weight:bold;display:flex;align[...]
+.zoom-btn{width:24px;height:24px;background:var(--bg-panel);border:1px solid var(--border-hard);color:var(--txt);border-radius:3px;cursor:pointer;font-size:14px;font-weight:bold;display:flex;align-items:center;justify-content:center}
 
 #evo-wrap{height:130px;flex-shrink:0;border-top:2px solid var(--border-hard);position:relative;background:var(--bg-sidebar)}
 #evo{height:100%;position:relative}
@@ -111,7 +110,7 @@ html,body{height:100%;overflow:hidden;font-family:'Courier New',monospace;backgr
 .anexo-section{margin-bottom:20px}
 .anexo-section h3{font-size:11px;text-transform:uppercase;color:var(--txt);border-left:3px solid var(--accent);padding-left:8px;margin-bottom:8px}
 .anexo-section p{font-size:11px;line-height:1.6;color:var(--txt-muted);margin-bottom:10px;text-align:justify}
-.anexo-formula{background:var(--bg-panel);border:1px solid var(--border-soft);padding:10px;border-radius:4px;font-family:monospace;font-size:11px;margin:8px 0;color:var(--txt);display:flex;flex-d[...]
+.anexo-formula{background:var(--bg-panel);border:1px solid var(--border-soft);padding:10px;border-radius:4px;font-family:monospace;font-size:11px;margin:8px 0;color:var(--txt);display:flex;flex-direction:column}
 
 /* Banner de Calibración Activa */
 #calib-banner{background:#eaeaea;border:1px solid var(--border-hard);border-radius:3px;padding:4px 8px;font-size:9px;font-weight:bold;color:var(--accent);display:inline-block;margin-top:4px}
@@ -242,22 +241,22 @@ svg{display:block;width:100%;height:100%}
         
         <div class="anexo-section">
           <h3>1. Extracción Correlativa y Tokenización Posicional</h3>
-          <p>El pipeline opera mediante la interceptación de las matrices de transformación afín del documento ($T_m$) provistas por PDF.js. Esto permite mapear cada cadena física a un espaci[...]
+          <p>El pipeline opera mediante la interceptación de las matrices de transformación afín del documento ($T_m$) provistas por PDF.js. Esto permite mapear cada cadena física a un espacio vectorial de cordenadas canónicas.</p>
         </div>
 
         <div class="anexo-section">
           <h3>2. Proximidad Semántica e Influencia Estocástica Variable</h3>
-          <p>La matriz tradicional se modela mediante co-ocurrencia estricta dentro de un entorno móvil acotado por una ventana sintáctica móvil $W$. Dependiendo del ciclo cronológico estocá[...]
+          <p>La matriz tradicional se modela mediante co-ocurrencia estricta dentro de un entorno móvil acotado por una ventana sintáctica móvil $W$. Dependiendo del ciclo cronológico estocástico, se calibra dinámicamente cada 17.42 horas.</p>
         </div>
 
         <div class="anexo-section">
           <h3>3. Topología Reticular (Grilla Dinámica de Radio Variable)</h3>
-          <p>Para capturar la sintaxis visual se implementa un particionamiento espacial. El radio de interacción euclidiana ($R$) se autocalibra dinámicamente en función de la densidad local [...]
+          <p>Para capturar la sintaxis visual se implementa un particionamiento espacial. El radio de interacción euclidiana ($R$) se autocalibra dinámicamente en función de la densidad local de tokens.</p>
         </div>
 
         <div class="anexo-section">
           <h3>4. Análisis de Ritmo Vectorial e Invariancia Espacial</h3>
-          <p>El motor registra el historial de vectores coordenados diferenciales $\vec{v} = (\Delta x, \Delta y)$ distribuidos a lo largo del documento. Si la dispersión combinada es inferior a[...]
+          <p>El motor registra el historial de vectores coordenados diferenciales $\vec{v} = (\Delta x, \Delta y)$ distribuidos a lo largo del documento. Si la dispersión combinada es inferior al umbral configurable, se marcan como pares rítmicos.</p>
         </div>
       </div>
     </div>
@@ -329,7 +328,7 @@ const S = {
 };
 
 const COLS=['#3f38af','#16a34a','#d97706','#dc2626','#2563eb','#9333ea','#4b5563','#0891b2'];
-const STOPS=new Set("el la los las un una unos unas de del al a en con por para que se su sus es son esta estan estuvo fue ser y o pero si no mas ya asi tambien este estos ese esa esos esas me te[...]
+const STOPS=new Set("el la los las un una unos unas de del al a en con por para que se su sus es son esta estan estuvo fue ser y o pero si no mas ya asi tambien este estos ese esa esos esas me te mi mis te ti tu tus nos os mio tuyo suyo nuestro vuestro libro libros cosa cosas hombre mujer dia dias pais paises cosa mundo vida gente tiempo momento punto parte lugar forma manera razon causa efecto resultado sentido valor precio numero cantidad tamaño tipo clase especie genero categoria orden grupo serie conjunto total suma resta multiplicacion division operacion calcul calculo resultado solucion problema pregunta respuesta idea pensamient pensamiento opinion creencia fe duda certeza verdad falsedad mentira engaño ilusion fantasia realidad hecho evento suceso caso ejemplo muestra modelo patron regla ley principio teoria practica uso costumbre habito tradicion cultura sociedad comunidad familia hogar casa edificio construccion ciudad pueblo village aldea camino calle avenida plaza parque jardin bosque rio lago mar oceano montaña colina llanura desierto isla continente planeta tierra cielo sol luna estrella luz oscuridad color rojo azul verde amarillo blanco negro gris forma redonda cuadrada triangular recta curva punto linea superficie volumen masa peso medida distancia altura profundidad anchura longitud duracion velocidad tiempo momento segundo minuto hora dia semana mes año siglo epoca edad periodo estacion clima temperatura calor frio fuego agua aire tierra".split(/\s+/));
 
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 function tokenize(text){return norm(text).replace(/-/g,' ').replace(/[^\p{L}\s]/gu,' ').split(/\s+/).filter(w=>w.length>3&&!STOPS.has(w));}
@@ -604,7 +603,7 @@ function executeEngine(svgSelector, nodes, edges, forceMode, clusterColorMapping
             .on("end", (e,d) => { if(!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
 
     node.append('circle').attr('r', d => d.r).attr('fill', d => COLS[d.cl % COLS.length]).attr('fill-opacity', 0.8).attr('stroke', '#222').attr('stroke-width', 1);
-    node.append('text').text(d => d.id).attr('text-anchor', 'middle').attr('dy', '.35em').attr('font-size', d => Math.max(8, d.r * 0.7)).attr('fill', '#000').style('font-weight', 'bold').style('p[...]
+    node.append('text').text(d => d.id).attr('text-anchor', 'middle').attr('dy', '.35em').attr('font-size', d => Math.max(8, d.r * 0.7)).attr('fill', '#000').style('font-weight', 'bold').style('pointer-events', 'none');
 
     simulation.on('tick', () => {
         link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
@@ -675,8 +674,8 @@ function renderMetrics(){
   el.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:8px;">
       <div class="metric-card"><div class="metric-card-title">Frecuencia de Términos (TF) Promedio</div><div class="metric-card-value">${(sumTF/totalTokens).toFixed(2)}</div></div>
-      <div class="metric-card"><div class="metric-card-title">Dispersión Documental (DF) Promedio</div><div class="metric-card-value" style="color:var(--green)">${(sumDF/totalTokens).toFixed(2)}[...]
-      <div class="metric-card"><div class="metric-card-title">Peso Informativo Promedio Global (TF-IDF)</div><div class="metric-card-value" style="color:var(--amber)">${(sumTFIDF/totalTokens).toF[...]
+      <div class="metric-card"><div class="metric-card-title">Dispersión Documental (DF) Promedio</div><div class="metric-card-value" style="color:var(--green)">${(sumDF/totalTokens).toFixed(2)}</div></div>
+      <div class="metric-card"><div class="metric-card-title">Peso Informativo Promedio Global (TF-IDF)</div><div class="metric-card-value" style="color:var(--amber)">${(sumTFIDF/totalTokens).toFixed(2)}</div></div>
     </div>`;
 }
 
@@ -700,7 +699,7 @@ function renderComparativa(){
     <tr><td>Entropía de la Distribución Co-Informativa</td><td>${entropy(cT)}</td><td>${entropy(cS)}</td><td>${entropy(cI)}</td></tr>
     <tr><td>Núcleo de Clúster Dominante</td><td>${topCluster(cT)}</td><td>${topCluster(cS)}</td><td>${topCluster(cI)}</td></tr>
     <tr><td>Enlaces Totales Validados</td><td>${Object.keys(S.co_trad).length}</td><td>${Object.keys(S.co_spac).length}</td><td>${Object.keys(S.co_int).length}</td></tr>
-    <tr><td>Criterio Físico Operativo del Pipeline</td><td>Ventana Tradicional W=${C_ACTIVA.W}</td><td>Grilla Dinámica Reticular R=${avgRadio}</td><td>Vector Isomórfico Estricto (sd <= ${C_ACT[...]
+    <tr><td>Criterio Físico Operativo del Pipeline</td><td>Ventana Tradicional W=${C_ACTIVA.W}</td><td>Grilla Dinámica Reticular R=${avgRadio}</td><td>Vector Isomórfico Estricto (sd <= ${C_ACTIVA.umbralRitmo})</td></tr>
   `;
 }
 
@@ -721,29 +720,6 @@ function drawEvo(){
     const line=d3.line().x(e=>xSc(e.page)).y(e=>ySc(e.snap[term]||0)).curve(d3.curveCatmullRom.alpha(.5));
     g.append('path').datum(sorted).attr('d',line).attr('fill','none').attr('stroke',col).attr('stroke-width',2);
   });
-}
-
-async function loadPDFFromURL(pdfUrl) {
-  document.getElementById('fname').textContent = 'sí.pdf';
-  S.pdf = await pdfjs.getDocument(pdfUrl).promise;
-  S.total = S.pdf.numPages;
-  S.done = new Set();
-  S.tf = {};
-  S.df = {};
-  S.co_trad = {};
-  S.co_spac = {};
-  S.co_int = {};
-  S.evo = [];
-  S.dist_synth_hist = {};
-  S.global_token_index = 0;
-  document.getElementById('rTo').value = S.total;
-  document.getElementById('bProcRange').disabled = false;
-  document.getElementById('bpall').disabled = false;
-  document.getElementById('breset').disabled = false;
-  document.getElementById('bproc').disabled = false;
-  document.getElementById('bexport').disabled = false;
-  updateUI();
-  showPage(1);
 }
 
 document.getElementById('pi').addEventListener('change',async e=>{
@@ -788,11 +764,6 @@ document.getElementById('breset').addEventListener('click',()=>{
 
 document.getElementById('cLimit').addEventListener('change', () => { recluster(); updateUI(); });
 new ResizeObserver(()=>{if(S.done.size){drawGraph();drawEvo();}}).observe(document.getElementById('gview'));
-
-// Cargar el PDF automáticamente al cargar la página
-window.addEventListener('load', () => {
-  loadPDFFromURL('sí.pdf');
-});
 </script>
 </body>
 </html>
